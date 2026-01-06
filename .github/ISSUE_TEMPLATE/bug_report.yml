@@ -30,7 +30,8 @@ body:
         - Windows 11
         - Windows 10
         - Windows Server
-        - macOS (stub — not implemented yet)
+        - macOS (Apple Silicon)
+        - macOS (Intel)
         - Linux (stub — not implemented yet)
         - Other / not sure
     validations:

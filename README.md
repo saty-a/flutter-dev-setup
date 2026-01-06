@@ -3,7 +3,7 @@
 [![License: MIT](https://img.shields.io/github/license/saty-a/flutter-dev-setup)](LICENSE)
 ![PowerShell 5.1+](https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?logo=powershell&logoColor=white)
 ![Windows: supported](https://img.shields.io/badge/Windows-supported-0078D6?logo=windows&logoColor=white)
-![macOS: help wanted](https://img.shields.io/badge/macOS-help%20wanted-lightgrey?logo=apple&logoColor=white)
+![macOS: supported](https://img.shields.io/badge/macOS-supported-000000?logo=apple&logoColor=white)
 ![Linux: help wanted](https://img.shields.io/badge/Linux-help%20wanted-lightgrey?logo=linux&logoColor=black)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
@@ -14,9 +14,12 @@ the Android SDK **command-line tools** — then sets `ANDROID_HOME`, `JAVA_HOME`
 where you stand.
 No Android Studio, no VS Code, no Chocolatey/winget/Scoop, and **no administrator rights**.
 
+macOS gets the same thing from `macos/setup.sh` — one bash script, Apple Silicon and Intel,
+no sudo and no Homebrew.
+
 > **Hours of manual Flutter and Android SDK setup, reduced to one double-click.**
 
-**Windows is fully supported. macOS and Linux are TODO stubs** — see
+**Windows and macOS are fully supported. Linux is still a TODO stub** — see
 [Platform status and roadmap](#platform-status-and-roadmap).
 
 ---
@@ -41,6 +44,31 @@ flutter doctor
 
 If double-clicking is blocked by policy, or you want flags, see
 [Running it from PowerShell](#running-it-from-powershell-flags).
+
+## Quick start (macOS)
+
+Apple Silicon and Intel, macOS 12 or newer. Requires the Xcode Command Line Tools for
+`git` — if they are missing the script tells you to run `xcode-select --install` and stops
+rather than hanging on the GUI prompt.
+
+```bash
+git clone https://github.com/saty-a/flutter-dev-setup.git
+cd flutter-dev-setup
+bash macos/setup.sh
+```
+
+Same flags as Windows, in Unix spelling:
+
+| Flag | Effect |
+|---|---|
+| `--verify-only` | Check and report only; changes nothing |
+| `--skip-android` | Skip the JDK and Android SDK steps |
+| `--install-root <path>` | Default `$HOME/dev` (no spaces — a Flutter limitation) |
+| `--precache` | Also run `flutter precache --android` |
+
+It installs under `$HOME/dev` and writes a single marker-delimited block to your shell
+profile (`~/.zprofile` for zsh — it prints which file it chose). When it finishes, open a
+new terminal (or `source` that file) and run `flutter doctor`.
 
 ---
 
@@ -254,20 +282,20 @@ IDE that was open during setup inherit the old environment; restart the IDE.
 | Platform | Status | Script |
 |---|---|---|
 | Windows 10/11 | Supported | `windows/setup.ps1` + `windows/run-setup.bat` |
-| macOS | Planned — stub only | `macos/setup.sh` |
+| macOS 12+ (Apple Silicon & Intel) | Supported | `macos/setup.sh` |
 | Linux | Planned — stub only | `linux/setup.sh` |
 
 - [x] Windows: Git, Flutter SDK, JDK 17, Android SDK, env vars, license acceptance, `flutter doctor`
 - [x] Idempotent re-runs plus a `-VerifyOnly` audit mode
 - [x] Corporate proxy / SSL-inspection handling for the JVM
-- [ ] macOS — `macos/setup.sh` mirroring the Windows flag surface and exit codes
+- [x] macOS — `macos/setup.sh` mirroring the Windows flag surface and exit codes
 - [ ] Linux — `linux/setup.sh`, same contract
 - [ ] CI smoke test on `windows-latest` (PSScriptAnalyzer + `-VerifyOnly`)
 
-`macos/setup.sh` and `linux/setup.sh` currently print a pointer and exit `1`.
-Until they land, use the official manual guides:
-[macOS](https://docs.flutter.dev/get-started/install/macos) ·
-[Linux](https://docs.flutter.dev/get-started/install/linux)
+`linux/setup.sh` still prints a pointer and exits `1`. Until it lands, use the official
+[Linux manual guide](https://docs.flutter.dev/get-started/install/linux) — and see
+[CONTRIBUTING.md](CONTRIBUTING.md) if you would like to port it; the macOS script is now a
+second reference implementation alongside the Windows one.
 
 ## If this isn't what you need
 
@@ -286,19 +314,20 @@ Until they land, use the official manual guides:
 Contributions are open and genuinely wanted — start with
 **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
-The **top wanted contribution is `macos/setup.sh` and `linux/setup.sh`.** They are stubs
-today, and `windows/setup.ps1` is the reference implementation: the port should keep the
-same flag surface (`-VerifyOnly` / `-SkipAndroid` / `-InstallRoot` / `-Precache`), the same
-exit codes (`0` / `1` / `2`), be idempotent, install to user scope with no `sudo`, verify
-SHA-256 where the publisher provides checksums, log each run, and end with the same
-Installed / Already installed / MISSING summary. Partial work is welcome — a `setup.sh`
-that only does the JDK step, with the rest as clean no-ops, is a useful pull request.
+The **top wanted contribution is `linux/setup.sh`.** It is still a stub, and there are now
+two reference implementations to copy from — `windows/setup.ps1` and `macos/setup.sh`. A
+port should keep the same flag surface (`--verify-only` / `--skip-android` /
+`--install-root` / `--precache`), the same exit codes (`0` / `1` / `2`), be idempotent,
+install to user scope with no `sudo`, verify SHA-256 where the publisher provides
+checksums, log each run, and end with the same Installed / Already installed / MISSING
+summary. Partial work is welcome — a `setup.sh` that only does the JDK step, with the rest
+as clean no-ops, is a useful pull request.
 
 Other ways to help, no shell scripting required:
 
-1. **Run it and tell me what happened.** [Open an issue](../../issues/new) with your Windows
-   edition and build (`winver`), `$PSVersionTable.PSVersion`, the flags you used, and the
-   log from `C:\dev\logs\`.
+1. **Run it and tell me what happened.** [Open an issue](../../issues/new) with your OS
+   version and architecture, the flags you used, and the log from `<install root>/logs/`
+   (on Windows: `winver`, `$PSVersionTable.PSVersion` and `C:\dev\logs\`).
 2. **Test it behind a corporate proxy or SSL inspection.** That is the hardest path to
    verify alone and the one most likely to still be wrong.
 3. **Hit a `flutter doctor` case Troubleshooting doesn't cover?** Open an issue with the
@@ -309,17 +338,17 @@ same `flutter doctor` errors find it.
 
 ## About
 
-Installing Flutter on Windows without Android Studio still means reading three docs pages,
-unzipping two SDKs, editing `PATH`, `ANDROID_HOME` and `JAVA_HOME` by hand, and then
-guessing why `flutter doctor` says `cmdline-tools component is missing`. This repo turns
-that into one readable, auditable PowerShell script you can re-run whenever a machine
-drifts — for your own laptop, for a classroom of them, or for a developer's first day.
+Installing Flutter without Android Studio still means reading three docs pages, unzipping
+two SDKs, editing `PATH`, `ANDROID_HOME` and `JAVA_HOME` by hand, and then guessing why
+`flutter doctor` says `cmdline-tools component is missing`. This repo turns that into one
+readable, auditable script per platform that you can re-run whenever a machine drifts — for
+your own laptop, for a classroom of them, or for a developer's first day.
 
 ## License
 
-[MIT](LICENSE). It downloads and runs third-party installers and changes your user
-environment variables; read `windows/setup.ps1` before you run it, and note that the
-software comes with no warranty.
+[MIT](LICENSE). These scripts download and run third-party installers and change your
+environment variables; read `windows/setup.ps1` or `macos/setup.sh` before you run it, and
+note that the software comes with no warranty.
 
 Flutter and the related logo are trademarks of Google LLC. Android is a trademark of
 Google LLC. This project is not endorsed by or affiliated with Google LLC.

@@ -4,7 +4,9 @@ This repo is one script per platform that takes a machine from nothing to a work
 Flutter + Android command-line toolchain, unattended, with no admin rights.
 
 - `windows/setup.ps1` — complete, and the **reference implementation** for everything below.
-- `macos/setup.sh`, `linux/setup.sh` — stubs that print a message and exit 1.
+- `macos/setup.sh` — complete (Apple Silicon and Intel); a second reference implementation
+  showing how the contract below translates to a Unix shell.
+- `linux/setup.sh` — still a stub that prints a message and exits 1.
 
 Contributions are welcome, including small ones. Please read the
 [Non-goals](#non-goals) before writing anything larger than about 50 lines.
