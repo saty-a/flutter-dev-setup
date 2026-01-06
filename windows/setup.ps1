@@ -484,6 +484,8 @@ function Install-Flutter {
         $manifest = Get-Json $Config.FlutterReleasesJson
         $stableHash = $manifest.current_release.stable
         $release = $manifest.releases |
+            # Order matters under StrictMode: older manifest entries lack
+            # dart_sdk_arch, so the hash check must short-circuit first
             Where-Object { $_.hash -eq $stableHash -and $_.dart_sdk_arch -eq 'x64' } |
             Select-Object -First 1
         if ($release) {
@@ -734,7 +736,7 @@ function Invoke-FlutterDoctor {
 
     # flutter/dart/git write progress and warnings to stderr. In PS 5.1, `2>&1`
     # under ErrorActionPreference=Stop turns each stderr line into a TERMINATING
-    # NativeCommandError \u2014 relax it around every flutter invocation.
+    # NativeCommandError - relax it around every flutter invocation.
     $prevEap = $ErrorActionPreference
     $ErrorActionPreference = 'Continue'
     try {
@@ -765,7 +767,7 @@ function Invoke-FlutterDoctor {
     }
     $doctorOutput | ForEach-Object { Write-Host "    $_" }
 
-    # Report doctor's verdict honestly \u2014 but only sections this script owns may
+    # Report doctor's verdict honestly - but only sections this script owns may
     # count as failures; [X] Visual Studio / Chrome etc. are out of scope here.
     $scoped = @($doctorOutput | Where-Object {
         "$_" -match '^\s*\[(\u2717|X|ERR)\]\s*(Flutter|Windows Version|Android toolchain)'
