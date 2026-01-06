@@ -1,0 +1,113 @@
+name: Compatibility report (it worked / mostly worked)
+description: Tell me how the script behaved on your machine. Successes are as useful as failures.
+title: "[compat] Windows <edition + build>"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        I can't test every Windows edition, language, proxy and antivirus combination myself,
+        so these reports are the main way this script gets more reliable. Two minutes of your
+        time is genuinely useful — even a plain "clean machine, worked, exit 0".
+
+        If the run **failed**, please use the Bug report template instead.
+
+  - type: input
+    id: windows-build
+    attributes:
+      label: Windows edition and build
+      description: Run `winver`, or `Get-ComputerInfo | Select-Object WindowsProductName, OsBuildNumber, OsLanguage`.
+      placeholder: Windows 11 Home, 26100.4946, de-DE
+    validations:
+      required: true
+
+  - type: input
+    id: ps-version
+    attributes:
+      label: PowerShell version
+      description: Output of `$PSVersionTable.PSVersion`.
+      placeholder: 5.1.26100.4768
+    validations:
+      required: true
+
+  - type: dropdown
+    id: outcome
+    attributes:
+      label: Outcome
+      options:
+        - Worked, exit code 0
+        - Worked, exit code 2 (installed but flutter doctor flagged something)
+        - Worked after a re-run
+        - Worked with manual intervention (please describe below)
+    validations:
+      required: true
+
+  - type: dropdown
+    id: machine-state
+    attributes:
+      label: State of the machine before the run
+      options:
+        - Clean — no Flutter, no Android SDK, no JDK
+        - Had Git already
+        - Had Android Studio and/or an Android SDK already
+        - Had a JDK already
+        - Had a previous run of this script (repair/audit re-run)
+    validations:
+      required: true
+
+  - type: input
+    id: launch
+    attributes:
+      label: How you launched it
+      placeholder: double-clicked run-setup.bat / setup.ps1 -SkipAndroid / -InstallRoot D:\sdk
+
+  - type: input
+    id: duration
+    attributes:
+      label: Roughly how long did it take?
+      description: Useful for setting expectations in the README, and for spotting antivirus slowdowns.
+      placeholder: ~25 minutes on a 100 Mbit connection
+
+  - type: checkboxes
+    id: environment
+    attributes:
+      label: Environment
+      options:
+        - label: Corporate / managed machine (Intune, domain-joined, group policy)
+        - label: Behind an HTTP proxy
+        - label: TLS/SSL inspection on the network (Zscaler, Netskope, corporate root CA)
+        - label: Third-party antivirus beyond Defender
+        - label: Non-English Windows display language
+        - label: Personal machine, no restrictions
+
+  - type: textarea
+    id: summary-table
+    attributes:
+      label: Final summary table
+      description: The "Summary" block printed at the end.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: flutter doctor -v output
+      description: Run it in a NEW terminal after setup finished.
+      render: text
+
+  - type: textarea
+    id: rough-edges
+    attributes:
+      label: Anything rough, confusing, or slower than you expected?
+      description: |
+        Warnings you weren't sure about, steps that looked stuck, wording in the output or README
+        that misled you. This is the part I can't get from a passing exit code.
+
+  - type: checkboxes
+    id: built
+    attributes:
+      label: Did you get as far as building something?
+      options:
+        - label: "`flutter create` + `flutter build apk` succeeded"
+        - label: "`flutter run` on a real device over USB worked (`adb devices` saw it)"
+        - label: Not yet

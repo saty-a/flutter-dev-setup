@@ -1,0 +1,150 @@
+name: Bug report (setup failed)
+description: The setup script errored, hung, or left the toolchain broken.
+title: "[bug] "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time. The two things that make a setup bug fixable are the
+        **transcript log** and the **exact step** it died on — everything else below is a bonus.
+
+        The log lives in `<InstallRoot>\logs\setup-<timestamp>.log`, normally
+        `C:\dev\logs\`, or `%USERPROFILE%\dev\logs\` if the script warned it fell back there.
+
+  - type: checkboxes
+    id: preflight
+    attributes:
+      label: Before filing
+      options:
+        - label: I checked the README's Troubleshooting section.
+          required: true
+        - label: I searched existing issues (including closed ones).
+          required: true
+
+  - type: dropdown
+    id: platform
+    attributes:
+      label: Platform
+      options:
+        - Windows 11
+        - Windows 10
+        - Windows Server
+        - macOS (stub — not implemented yet)
+        - Linux (stub — not implemented yet)
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: dropdown
+    id: step
+    attributes:
+      label: Which step failed?
+      description: The last `==>` heading printed before things went wrong.
+      options:
+        - Preflight checks
+        - Git for Windows
+        - Flutter SDK
+        - JDK 17
+        - Android command-line tools
+        - Android SDK packages
+        - Android license acceptance
+        - Verification (flutter doctor)
+        - It finished, but the toolchain does not work afterwards
+        - Other / not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened
+      description: What you expected, what you got. Include the error text verbatim if you have it.
+    validations:
+      required: true
+
+  - type: input
+    id: command
+    attributes:
+      label: Exact command or launcher used
+      placeholder: powershell -NoProfile -ExecutionPolicy Bypass -File windows\setup.ps1 -InstallRoot D:\sdk
+    validations:
+      required: true
+
+  - type: input
+    id: exit-code
+    attributes:
+      label: Exit code
+      description: "`$LASTEXITCODE` in PowerShell, or the number run-setup.bat printed before \"Press any key\"."
+      placeholder: "1"
+
+  - type: input
+    id: ps-version
+    attributes:
+      label: PowerShell version
+      description: Output of `$PSVersionTable.PSVersion`.
+      placeholder: 5.1.26100.4768
+
+  - type: input
+    id: windows-build
+    attributes:
+      label: Windows edition and build
+      description: Run `winver`, or `Get-ComputerInfo | Select-Object WindowsProductName, OsBuildNumber, OsLanguage`.
+      placeholder: Windows 11 Pro, 26100.4946, en-GB
+
+  - type: dropdown
+    id: machine-state
+    attributes:
+      label: State of the machine before the run
+      options:
+        - Clean — no Flutter, no Android SDK, no JDK
+        - Had Flutter already
+        - Had Android Studio and/or an Android SDK already
+        - Had a JDK already
+        - This was a re-run of the script (repair/audit)
+        - Not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: environment
+    attributes:
+      label: Anything unusual about the environment?
+      options:
+        - label: Corporate / managed machine (Intune, domain-joined, group policy)
+        - label: Behind an HTTP proxy
+        - label: TLS/SSL inspection on the network (Zscaler, Netskope, corporate root CA)
+        - label: Third-party antivirus beyond Defender
+        - label: Non-English Windows display language
+        - label: I ran it from an elevated (Administrator) shell
+        - label: Install root is on a non-system drive, or was changed with -InstallRoot
+
+  - type: textarea
+    id: summary-table
+    attributes:
+      label: Final summary table
+      description: The "Summary" block the script prints at the end, if it got that far.
+      render: text
+
+  - type: textarea
+    id: log
+    attributes:
+      label: Transcript log (or console output)
+      description: |
+        Attach the log file, or paste the last ~60 lines around the failure.
+
+        There is no log file if the run died in **Preflight checks** (the transcript starts
+        just after it) or if you used `-VerifyOnly` (which writes nothing) — in those cases
+        paste the console output instead.
+
+        Logs contain your username, machine name, full paths and resolved download URLs —
+        please skim and redact anything internal, proxy hostnames and credentials especially.
+      render: text
+    validations:
+      required: true
+
+  - type: textarea
+    id: extra
+    attributes:
+      label: Anything else
+      description: Screenshots, what you tried, what fixed it if you found a workaround.

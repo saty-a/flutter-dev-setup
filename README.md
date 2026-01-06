@@ -1,7 +1,74 @@
-# Flutter Development Environment Setup
+# Install Flutter on Windows Without Android Studio
 
-Scripted, unattended setup of a complete Flutter (Android) development toolchain.
-**Windows is fully supported; macOS and Linux are TODO stubs.**
+[![License: MIT](https://img.shields.io/github/license/saty-a/flutter-dev-setup)](LICENSE)
+![PowerShell 5.1+](https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?logo=powershell&logoColor=white)
+![Windows: supported](https://img.shields.io/badge/Windows-supported-0078D6?logo=windows&logoColor=white)
+![macOS: help wanted](https://img.shields.io/badge/macOS-help%20wanted-lightgrey?logo=apple&logoColor=white)
+![Linux: help wanted](https://img.shields.io/badge/Linux-help%20wanted-lightgrey?logo=linux&logoColor=black)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
+
+One PowerShell script that sets up a complete Flutter **and** Android build toolchain on
+Windows 10/11 — Git for Windows, the latest stable Flutter SDK, Eclipse Temurin JDK 17 and
+the Android SDK **command-line tools** — then sets `ANDROID_HOME`, `JAVA_HOME` and your user
+`PATH`, accepts all Android SDK licenses, then runs `flutter doctor` so you can see exactly
+where you stand.
+No Android Studio, no VS Code, no Chocolatey/winget/Scoop, and **no administrator rights**.
+
+> **Hours of manual Flutter and Android SDK setup, reduced to one double-click.**
+
+**Windows is fully supported. macOS and Linux are TODO stubs** — see
+[Platform status and roadmap](#platform-status-and-roadmap).
+
+---
+
+## Quick start (Windows)
+
+1. **Get the files.** Click **Code → Download ZIP**, then right-click the ZIP →
+   *Extract All*. (Or `git clone https://github.com/saty-a/flutter-dev-setup.git`
+   if you already have Git — the script installs it for you if you don't.)
+2. **Open the `windows` folder and double-click `run-setup.bat`.**
+3. **Wait.** Most of the time is downloading and unzipping (the Flutter SDK alone is ~1 GB).
+   The window stays open at the end and prints a summary table plus the log file path.
+
+That's it. Nothing to install first, nothing to elevate, nothing to configure.
+
+When it finishes: **open a *new* terminal** — `PATH` changes never reach already-open
+windows — and run:
+
+```powershell
+flutter doctor
+```
+
+If double-clicking is blocked by policy, or you want flags, see
+[Running it from PowerShell](#running-it-from-powershell-flags).
+
+---
+
+## Why this exists
+
+Getting Flutter building Android apps on a fresh Windows machine is not one install. It is a
+Flutter zip, a JDK, Android `cmdline-tools`, three `sdkmanager` packages, `PATH` plus
+`ANDROID_HOME` and `JAVA_HOME`, and a license prompt — in the right order, in a path with no
+spaces, without admin rights, and usually behind a corporate proxy. Miss any step and
+`flutter doctor` hands you an error string instead of an explanation.
+
+If you have seen any of these, this repo is for you:
+
+- `'flutter' is not recognized as an internal or external command`
+- `cmdline-tools component is missing`
+- `Android sdkmanager tool not found`
+- `Unable to locate Android SDK` / `Android SDK not found at this location`
+- `Failed to find 'ANDROID_HOME' environment variable`
+- `Android license status unknown` / `Some Android licenses not accepted`
+- `JAVA_HOME is set to an invalid directory`, or Flutter quietly not using the JDK from `JAVA_HOME`
+- `cmdline-tools: could not determine SDK root`
+- `Failed to download any source lists!` / `IO exception while downloading manifest`
+
+Every one of those is a thing this script sets up correctly, or repairs on a re-run.
+It is meant for a first Flutter machine, a lab or classroom of them, and for handing a new
+developer something they can run on day one without a walkthrough.
+
+---
 
 ## What it installs (Windows)
 
@@ -13,6 +80,11 @@ Scripted, unattended setup of a complete Flutter (Android) development toolchain
 | Android cmdline-tools | pinned (see `$Config` in `setup.ps1`) | `C:\dev\Android\sdk\cmdline-tools\latest` |
 | Android SDK packages | `platform-tools`, `platforms;android-36`, `build-tools;36.0.0` | `C:\dev\Android\sdk` |
 
+Versions are resolved at runtime from the publishers' own endpoints — Google's Flutter
+releases JSON, the Adoptium API, the Git for Windows releases API — so you get current
+stable builds rather than whatever was current when this repo was last touched. Pinned
+fallback URLs in `$Config` are used only if that resolution fails.
+
 Downloads are fetched from official sources only (Google, Adoptium, GitHub) and
 SHA-256 verified where the publisher provides checksums (Flutter, JDK, cmdline-tools).
 
@@ -23,11 +95,12 @@ for command-line builds.
 ## Requirements
 
 - Windows 10 or 11, 64-bit
+- Windows PowerShell 5.1 — the one already built into Windows; PowerShell 7 is not needed
 - ~15 GB free disk space on the install drive
 - Internet access
 - **No administrator rights needed** — everything installs per-user
 
-## How to run (Windows)
+## Running it from PowerShell (flags)
 
 **Option A (easiest):** double-click `windows\run-setup.bat`.
 
@@ -45,6 +118,8 @@ Flags:
 | `-SkipAndroid` | Skip JDK + Android SDK (e.g. Android Studio already provides them) |
 | `-InstallRoot D:\sdk` | Install somewhere else (path must not contain spaces) |
 | `-Precache` | Also run `flutter precache --android` at the end |
+
+`run-setup.bat` passes arguments straight through, so `run-setup.bat -VerifyOnly` works too.
 
 When it finishes: **open a new terminal** (PATH changes don't affect already-open ones)
 and run `flutter doctor` to confirm.
@@ -64,9 +139,16 @@ written to `HKLM` or `C:\Program Files`.
 - Writes persistent Flutter tool settings (`android-sdk` and `jdk-dir` absolute paths)
   into the user profile (`%APPDATA%\flutter\settings`) via `flutter config`
 - Creates an empty `%USERPROFILE%\.android\repositories.cfg` (silences an sdkmanager warning)
-- Writes a log per run to `C:\dev\logs\`
+- Writes a log per run to `C:\dev\logs\` (`setup-YYYYMMDD-HHMMSS.log`, a full PowerShell transcript)
 
-## Re-running safely
+Two implementation details worth knowing if you audit scripts before running them:
+the environment variables are written straight into `HKCU\Environment` rather than with
+`setx` (which truncates values at 1024 characters and rewrites `REG_EXPAND_SZ` as
+`REG_SZ`), and the script then broadcasts `WM_SETTINGCHANGE` so Explorer and newly launched
+processes pick the changes up. On proxied networks it also sets `JAVA_TOOL_OPTIONS` for its
+own child JVMs only — process-scoped, never persisted.
+
+## Re-running safely (idempotent repair and audit)
 
 The script is idempotent: every step first checks whether it is already done and
 skips cleanly, so re-running works as a **repair/audit** — the final summary table
@@ -78,17 +160,47 @@ To force a reinstall of one tool, delete its folder under `C:\dev` and re-run
 Exit codes: `0` success · `1` failure/components missing · `2` everything
 installed but `flutter doctor` reports toolchain issues.
 
-## Verifying
+## Verifying (dry run, changes nothing)
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File windows\setup.ps1 -VerifyOnly
 ```
 
-## macOS / Linux
+## FAQ
 
-Not implemented yet (`macos/setup.sh`, `linux/setup.sh` are stubs). Manual guides:
-[macOS](https://docs.flutter.dev/get-started/install/macos) ·
-[Linux](https://docs.flutter.dev/get-started/install/linux)
+**Do I need Android Studio for Flutter?**
+No. Android Studio is an IDE; what Flutter actually needs from it is the Android SDK, and
+the SDK ships separately as `cmdline-tools` — which is what this script installs. You can
+build, run and sign Android apps with only the command line. `flutter doctor` will still
+list Android Studio as "not found"; for CLI builds that line is cosmetic.
+
+**Can I install the Android SDK without Android Studio on Windows?**
+Yes — that is exactly what the `cmdline-tools` + `sdkmanager` path is for, and it is what
+this script automates (`platform-tools`, `platforms;android-36`, `build-tools;36.0.0`).
+
+**Do I need admin rights?**
+No. Everything lands under `C:\dev` and `%LOCALAPPDATA%`, and only user-scope environment
+variables are written. This also avoids Flutter's documented "SDK is installed in a
+protected folder and may not function correctly" failure mode.
+
+**Does it work with the PowerShell that ships with Windows?**
+Yes — Windows PowerShell 5.1. You do not need PowerShell 7, Chocolatey, winget or Scoop,
+and the script installs no package manager of its own.
+
+**Will it break an existing Flutter or Android Studio installation?**
+It checks before it acts, so nothing is installed twice. If Android Studio already gives
+you a JDK and SDK, run it with `-SkipAndroid` so it only handles Git and Flutter. Note that
+it does write `android-sdk`/`jdk-dir` into `%APPDATA%\flutter\settings`, so an existing
+Flutter install will be pointed at this script's SDK paths.
+
+**What about WSL2?**
+Not needed and not what this targets. This is a native Windows toolchain; you can build and
+run Android apps from Windows directly, with no WSL2 involved.
+
+**Can I use it to set up several machines?**
+Yes — it is unattended, logs each run, and `-VerifyOnly` gives you an audit pass, so the
+same file works for one laptop or a room of them. `-InstallRoot` moves everything if `C:`
+is small or locked down.
 
 ## Troubleshooting
 
@@ -136,3 +248,78 @@ IDE that was open during setup inherit the old environment; restart the IDE.
 5. Optionally delete caches and script-created config: `%USERPROFILE%\.android`
    (includes the `repositories.cfg` the script created), `%USERPROFILE%\.gradle`,
    `%LOCALAPPDATA%\Pub\Cache`
+
+## Platform status and roadmap
+
+| Platform | Status | Script |
+|---|---|---|
+| Windows 10/11 | Supported | `windows/setup.ps1` + `windows/run-setup.bat` |
+| macOS | Planned — stub only | `macos/setup.sh` |
+| Linux | Planned — stub only | `linux/setup.sh` |
+
+- [x] Windows: Git, Flutter SDK, JDK 17, Android SDK, env vars, license acceptance, `flutter doctor`
+- [x] Idempotent re-runs plus a `-VerifyOnly` audit mode
+- [x] Corporate proxy / SSL-inspection handling for the JVM
+- [ ] macOS — `macos/setup.sh` mirroring the Windows flag surface and exit codes
+- [ ] Linux — `linux/setup.sh`, same contract
+- [ ] CI smoke test on `windows-latest` (PSScriptAnalyzer + `-VerifyOnly`)
+
+`macos/setup.sh` and `linux/setup.sh` currently print a pointer and exit `1`.
+Until they land, use the official manual guides:
+[macOS](https://docs.flutter.dev/get-started/install/macos) ·
+[Linux](https://docs.flutter.dev/get-started/install/linux)
+
+## If this isn't what you need
+
+- **Want to do it by hand and understand every step?** Flutter's own
+  [manual install](https://docs.flutter.dev/install/manual) and
+  [troubleshooting](https://docs.flutter.dev/install/troubleshoot) pages.
+- **Want the full Android Studio IDE?** Install it, then run this with `-SkipAndroid` to get
+  just Git and Flutter.
+- **Need several Flutter SDK versions side by side?** Use
+  [FVM](https://github.com/leoafarias/fvm).
+- **Setting up a CI runner rather than a laptop?** Use
+  [flutter-action](https://github.com/subosito/flutter-action).
+
+## Contributing
+
+Contributions are open and genuinely wanted — start with
+**[CONTRIBUTING.md](CONTRIBUTING.md)**.
+
+The **top wanted contribution is `macos/setup.sh` and `linux/setup.sh`.** They are stubs
+today, and `windows/setup.ps1` is the reference implementation: the port should keep the
+same flag surface (`-VerifyOnly` / `-SkipAndroid` / `-InstallRoot` / `-Precache`), the same
+exit codes (`0` / `1` / `2`), be idempotent, install to user scope with no `sudo`, verify
+SHA-256 where the publisher provides checksums, log each run, and end with the same
+Installed / Already installed / MISSING summary. Partial work is welcome — a `setup.sh`
+that only does the JDK step, with the rest as clean no-ops, is a useful pull request.
+
+Other ways to help, no shell scripting required:
+
+1. **Run it and tell me what happened.** [Open an issue](../../issues/new) with your Windows
+   edition and build (`winver`), `$PSVersionTable.PSVersion`, the flags you used, and the
+   log from `C:\dev\logs\`.
+2. **Test it behind a corporate proxy or SSL inspection.** That is the hardest path to
+   verify alone and the one most likely to still be wrong.
+3. **Hit a `flutter doctor` case Troubleshooting doesn't cover?** Open an issue with the
+   exact error text so it can be added.
+
+If this repository helped you, please give it a star — that's how other people fighting the
+same `flutter doctor` errors find it.
+
+## About
+
+Installing Flutter on Windows without Android Studio still means reading three docs pages,
+unzipping two SDKs, editing `PATH`, `ANDROID_HOME` and `JAVA_HOME` by hand, and then
+guessing why `flutter doctor` says `cmdline-tools component is missing`. This repo turns
+that into one readable, auditable PowerShell script you can re-run whenever a machine
+drifts — for your own laptop, for a classroom of them, or for a developer's first day.
+
+## License
+
+[MIT](LICENSE). It downloads and runs third-party installers and changes your user
+environment variables; read `windows/setup.ps1` before you run it, and note that the
+software comes with no warranty.
+
+Flutter and the related logo are trademarks of Google LLC. Android is a trademark of
+Google LLC. This project is not endorsed by or affiliated with Google LLC.

@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Troubleshooting (read this first)
+    url: https://github.com/saty-a/flutter-dev-setup#troubleshooting
+    about: Proxy/SSL failures, "cmdline-tools component is missing", licence errors and the usual flutter doctor complaints are already documented here.
+  - name: Porting to macOS or Linux
+    url: https://github.com/saty-a/flutter-dev-setup/blob/main/CONTRIBUTING.md#the-porting-contract
+    about: What macos/setup.sh and linux/setup.sh have to do to reach parity with the Windows script.
+  - name: Flutter's own install docs
+    url: https://docs.flutter.dev/install/manual
+    about: Questions about Flutter itself, rather than about these scripts, are better answered upstream.
