@@ -308,6 +308,64 @@ function Invoke-WithYesInput {
 }
 
 # ---------------------------------------------------------------------------
+# ---- JVM networking on corporate machines ----------------------------------
+# ---------------------------------------------------------------------------
+function Get-SystemProxy {
+    # Explicit env vars first (HTTPS_PROXY/HTTP_PROXY), then WinINET settings
+    foreach ($name in 'HTTPS_PROXY', 'HTTP_PROXY') {
+        $val = [Environment]::GetEnvironmentVariable($name)
+        if ($val) {
+            if ($val -notmatch '://') { $val = "http://$val" }
+            try {
+                $u = [uri]$val
+                if ($u.Host) { return @{ ProxyHost = $u.Host; ProxyPort = $u.Port } }
+            } catch { }
+        }
+    }
+    try {
+        $inet = Get-ItemProperty 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Internet Settings' -ErrorAction Stop
+        if ($inet.ProxyEnable -eq 1 -and $inet.ProxyServer) {
+            # ProxyServer is either "host:port" or "http=h:p;https=h:p;..."
+            if ($inet.ProxyServer -match '(?:^|;)https?=([^;:]+):(\d+)') {
+                return @{ ProxyHost = $matches[1]; ProxyPort = [int]$matches[2] }
+            }
+            if ($inet.ProxyServer -notmatch '=' -and $inet.ProxyServer -match '^([^:]+):(\d+)$') {
+                return @{ ProxyHost = $matches[1]; ProxyPort = [int]$matches[2] }
+            }
+        }
+    } catch { }
+    return $null
+}
+
+function Set-JvmNetworkDefaults {
+    # Corporate networks break JVM downloads (sdkmanager manifests, license
+    # checks) two ways PowerShell downloads are immune to: TLS-inspection
+    # certificates missing from the JDK's own truststore, and proxies the JVM
+    # ignores. Point every child JVM at the Windows certificate store and at
+    # the system/explicit proxy via JAVA_TOOL_OPTIONS (process-scoped only).
+    $opts = @('-Djavax.net.ssl.trustStoreType=Windows-ROOT')
+    $proxy = Get-SystemProxy
+    if ($proxy) {
+        Write-Ok "JVM proxy for Android tooling: $($proxy.ProxyHost):$($proxy.ProxyPort)"
+        $opts += "-Dhttps.proxyHost=$($proxy.ProxyHost)"
+        $opts += "-Dhttps.proxyPort=$($proxy.ProxyPort)"
+        $opts += "-Dhttp.proxyHost=$($proxy.ProxyHost)"
+        $opts += "-Dhttp.proxyPort=$($proxy.ProxyPort)"
+    } else {
+        $opts += '-Djava.net.useSystemProxies=true'
+    }
+    $joined = $opts -join ' '
+    if ($env:JAVA_TOOL_OPTIONS) {
+        if ($env:JAVA_TOOL_OPTIONS -notlike "*$joined*") {
+            $env:JAVA_TOOL_OPTIONS = "$($env:JAVA_TOOL_OPTIONS) $joined"
+        }
+    } else {
+        $env:JAVA_TOOL_OPTIONS = $joined
+    }
+    # JVMs print 'Picked up JAVA_TOOL_OPTIONS: ...' to stderr — expected, harmless
+}
+
+# ---------------------------------------------------------------------------
 # ---- Preflight -------------------------------------------------------------
 # ---------------------------------------------------------------------------
 function Test-Preflight {
@@ -697,7 +755,14 @@ function Install-AndroidPackages {
         Write-Host "    Installing: $($packages -join ', ') (large download, please wait)..."
         $exitCode = Invoke-WithYesInput -Executable $sdkmanager `
             -Arguments (@("--sdk_root=$script:AndroidHome") + $packages)
-        if ($exitCode -ne 0) { throw "sdkmanager package install failed (exit $exitCode)" }
+        if ($exitCode -ne 0) {
+            throw ("sdkmanager package install failed (exit $exitCode). " +
+                "If the output above shows 'Failed to download any source lists' or 'IO exception while " +
+                "downloading manifest', your network (proxy/SSL inspection) is blocking the Java tooling. " +
+                "The script already points the JVM at the Windows certificate store and system proxy; " +
+                "if it still fails, set HTTPS_PROXY explicitly (including credentials if your proxy " +
+                "requires them) and re-run, or run once on a different network.")
+        }
         if (-not (Test-Path $adb)) { throw 'sdkmanager finished but platform-tools\adb.exe is missing' }
         Write-Ok 'SDK packages installed'
         Add-Summary 'Android SDK packages' 'Installed' ($packages -join ', ')
@@ -823,6 +888,7 @@ try {
 
     if (-not $SkipAndroid) {
         Install-Jdk
+        if (-not $VerifyOnly) { Set-JvmNetworkDefaults }
         $toolsOk = Install-AndroidCmdlineTools
         # VerifyOnly's package/license checks are pure Test-Path — safe without sdkmanager
         if ($toolsOk -or $VerifyOnly) {

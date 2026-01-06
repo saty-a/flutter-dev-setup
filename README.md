@@ -98,6 +98,16 @@ one-liner above; neither changes the machine's policy.
 **Corporate proxy** — set the proxy for the session before running:
 `$env:HTTPS_PROXY = 'http://proxy.example.com:8080'`
 
+**sdkmanager: "Failed to download any source lists!" / "IO exception while
+downloading manifest"** — the Java tooling can't reach Google's package
+repository even though the PowerShell downloads worked. Typical on corporate
+networks: PowerShell uses the Windows proxy + Windows certificate store, but
+the JVM uses neither. The script handles this automatically (it points the JVM
+at the Windows certificate store and the system proxy via `JAVA_TOOL_OPTIONS`).
+If it still fails, your proxy likely requires credentials — set
+`$env:HTTPS_PROXY = 'http://user:pass@proxy.example.com:8080'` and re-run,
+or run the script once on an unrestricted network (hotspot).
+
 **Antivirus makes extraction very slow** — extracting the ~1 GB Flutter zip
 (thousands of small files) can crawl under real-time scanning. Optionally add a
 Defender exclusion for `C:\dev` (requires admin) or just wait it out.
