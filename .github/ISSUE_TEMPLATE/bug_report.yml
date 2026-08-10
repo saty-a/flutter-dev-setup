@@ -32,7 +32,7 @@ body:
         - Windows Server
         - macOS (Apple Silicon)
         - macOS (Intel)
-        - Linux (stub — not implemented yet)
+        - Linux (x86_64)
         - Other / not sure
     validations:
       required: true

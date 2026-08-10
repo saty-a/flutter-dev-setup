@@ -4,9 +4,13 @@ This repo is one script per platform that takes a machine from nothing to a work
 Flutter + Android command-line toolchain, unattended, with no admin rights.
 
 - `windows/setup.ps1` — complete, and the **reference implementation** for everything below.
-- `macos/setup.sh` — complete (Apple Silicon and Intel); a second reference implementation
-  showing how the contract below translates to a Unix shell.
-- `linux/setup.sh` — still a stub that prints a message and exits 1.
+- `macos/setup.sh` — complete (Apple Silicon and Intel); shows how the contract below
+  translates to a Unix shell.
+- `linux/setup.sh` — complete (x86_64). arm64 Linux is refused on purpose: Google publishes
+  no prebuilt arm64 Linux Flutter SDK.
+
+All three are implemented, so the contract below is now a consistency spec rather than a
+porting brief — a change to one script usually belongs in the other two.
 
 Contributions are welcome, including small ones. Please read the
 [Non-goals](#non-goals) before writing anything larger than about 50 lines.
@@ -15,25 +19,28 @@ Contributions are welcome, including small ones. Please read the
 
 ## What this project needs, in order
 
-### 1. Implement `macos/setup.sh` or `linux/setup.sh`
+### 1. Run a script on a real machine and tell me what happened
 
-This is the biggest gap and the most useful thing you can do. It is a port, not a
-design job: `windows/setup.ps1` already decided what "done" means, and the
-[porting contract](#the-porting-contract) below spells it out step by step.
+This is now the most useful thing you can do. Success reports are as valuable as
+failures — I cannot test every Windows edition, distro, locale, corporate proxy and
+antivirus combination myself. Use the **compatibility report** issue template; it asks
+for the OS version and architecture, whether the machine was clean, the exit code, and
+the final summary table (on Windows also `winver` and `$PSVersionTable.PSVersion`).
 
-**Partial work is welcome.** A `macos/setup.sh` that only resolves and installs the
-JDK, with the other steps as clean no-ops that report `MISSING` in the summary, is a
-PR I will merge. I would rather review four small PRs than wait for one big one.
-Comment on the platform's tracking issue before you start so two people don't port
-the same step.
+Particularly wanted, because I could not test them:
 
-### 2. Run `windows/setup.ps1` on a real machine and tell me what happened
+- **Intel macOS** — the macOS script was verified on Apple Silicon only.
+- **Distros other than Ubuntu/Fedora** — Arch, openSUSE, Alpine and anything with an
+  unusual `/etc/os-release`, where the package-name hints are guesses.
+- **A real x86_64 Linux machine** — the Linux script was verified in an emulated
+  container, which is not the same as bare metal.
 
-Success reports are as useful as failures — I cannot test every Windows edition,
-locale, corporate proxy and antivirus combination myself. Use the
-**compatibility report** issue template; it asks for the Windows edition and build
-(`winver`), `$PSVersionTable.PSVersion`, whether the machine was clean, the exit code,
-and the final summary table.
+### 2. Keep the three scripts consistent
+
+All three are implemented, so the [porting contract](#the-porting-contract) below is a
+consistency spec: if you change behaviour in one script, the same change usually belongs
+in the other two. Partial PRs are fine — I would rather review four small ones than wait
+for one big one.
 
 The hairiest, least testable code path is **corporate networks**: proxies plus TLS
 inspection, where PowerShell downloads succeed (Windows proxy + Windows cert store)
@@ -121,11 +128,15 @@ end of `Set-UserEnvVar` is for. Finish with the equivalent of the Windows
 everything the publisher publishes a hash for:
 
 - Flutter — `releases_macos.json` / `releases_linux.json` (each release entry carries
-  `sha256`); pick `arm64` vs `x64` from `uname -m` on macOS. Linux ships `.tar.xz`.
+  `sha256`); pick `arm64` vs `x64` from `uname -m` on macOS. Linux ships `.tar.xz` and is
+  **x86_64 only** — there is no arm64 entry in `releases_linux.json`, so `linux/setup.sh`
+  refuses arm64 with instructions rather than installing an SDK that cannot run.
 - JDK 17 — the Adoptium v3 assets API with `os=mac|linux` and
   `architecture=x64|aarch64`; it returns a checksum per binary.
-- Android cmdline-tools — `commandlinetools-mac-*` / `commandlinetools-linux-*`, pinned
-  by build number with its published SHA-256, extracted so the final layout is
+- Android cmdline-tools — resolved from `repository2-3.xml`; the mac builds are split per
+  architecture (`commandlinetools-mac_arm64-*` / `-mac_x86_64-*`) while Linux ships one
+  archive. Only a **SHA-1** is published for these, so that is what gets verified.
+  Extracted so the final layout is
   `<sdk>/cmdline-tools/latest/bin/...` (sdkmanager derives the SDK root from its own
   location and requires that exact shape).
 - Official publishers only: Google, Adoptium, GitHub releases. No third-party mirrors.

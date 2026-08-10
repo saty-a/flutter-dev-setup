@@ -4,7 +4,7 @@
 ![PowerShell 5.1+](https://img.shields.io/badge/PowerShell-5.1%2B-5391FE?logo=powershell&logoColor=white)
 ![Windows: supported](https://img.shields.io/badge/Windows-supported-0078D6?logo=windows&logoColor=white)
 ![macOS: supported](https://img.shields.io/badge/macOS-supported-000000?logo=apple&logoColor=white)
-![Linux: help wanted](https://img.shields.io/badge/Linux-help%20wanted-lightgrey?logo=linux&logoColor=black)
+![Linux: supported](https://img.shields.io/badge/Linux-supported%20(x86__64)-FCC624?logo=linux&logoColor=black)
 [![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg?style=flat-square)](http://makeapullrequest.com)
 
 One PowerShell script that sets up a complete Flutter **and** Android build toolchain on
@@ -14,12 +14,13 @@ the Android SDK **command-line tools** — then sets `ANDROID_HOME`, `JAVA_HOME`
 where you stand.
 No Android Studio, no VS Code, no Chocolatey/winget/Scoop, and **no administrator rights**.
 
-macOS gets the same thing from `macos/setup.sh` — one bash script, Apple Silicon and Intel,
-no sudo and no Homebrew.
+macOS and Linux get the same thing from `macos/setup.sh` and `linux/setup.sh` — one bash
+script each, no sudo, no Homebrew and no package manager.
 
 > **Hours of manual Flutter and Android SDK setup, reduced to one double-click.**
 
-**Windows and macOS are fully supported. Linux is still a TODO stub** — see
+**Windows, macOS and Linux are all supported.** Linux is x86_64 only, because Google does
+not publish a prebuilt arm64 Linux Flutter SDK — see
 [Platform status and roadmap](#platform-status-and-roadmap).
 
 ---
@@ -69,6 +70,27 @@ Same flags as Windows, in Unix spelling:
 It installs under `$HOME/dev` and writes a single marker-delimited block to your shell
 profile (`~/.zprofile` for zsh — it prints which file it chose). When it finishes, open a
 new terminal (or `source` that file) and run `flutter doctor`.
+
+## Quick start (Linux)
+
+x86_64 only, kernel 4+. `git`, `curl`, `unzip` and `xz` must be present — installing them
+needs root, which this script never takes, so if any are missing it prints the exact command
+for your distro (apt/dnf/pacman/zypper/apk) and stops.
+
+```bash
+git clone https://github.com/saty-a/flutter-dev-setup.git
+cd flutter-dev-setup
+bash linux/setup.sh
+```
+
+Same flags as macOS (`--verify-only`, `--skip-android`, `--install-root`, `--precache`). The
+environment block goes to `~/.profile` for bash, or `~/.bash_profile`/`~/.zprofile` if those
+apply — the script prints which file it chose.
+
+> **arm64 Linux (Raspberry Pi, ARM servers, Docker on Apple Silicon) is not supported**, and
+> the script refuses instead of guessing: Google publishes the prebuilt Linux SDK for x86_64
+> only. On arm64 the supported route is a git checkout of Flutter — the script tells you the
+> exact commands.
 
 ---
 
@@ -283,19 +305,17 @@ IDE that was open during setup inherit the old environment; restart the IDE.
 |---|---|---|
 | Windows 10/11 | Supported | `windows/setup.ps1` + `windows/run-setup.bat` |
 | macOS 12+ (Apple Silicon & Intel) | Supported | `macos/setup.sh` |
-| Linux | Planned — stub only | `linux/setup.sh` |
+| Linux x86_64 (kernel 4+) | Supported | `linux/setup.sh` |
+| Linux arm64 | Not possible — no upstream SDK | — |
 
 - [x] Windows: Git, Flutter SDK, JDK 17, Android SDK, env vars, license acceptance, `flutter doctor`
 - [x] Idempotent re-runs plus a `-VerifyOnly` audit mode
 - [x] Corporate proxy / SSL-inspection handling for the JVM
 - [x] macOS — `macos/setup.sh` mirroring the Windows flag surface and exit codes
-- [ ] Linux — `linux/setup.sh`, same contract
-- [ ] CI smoke test on `windows-latest` (PSScriptAnalyzer + `-VerifyOnly`)
-
-`linux/setup.sh` still prints a pointer and exits `1`. Until it lands, use the official
-[Linux manual guide](https://docs.flutter.dev/get-started/install/linux) — and see
-[CONTRIBUTING.md](CONTRIBUTING.md) if you would like to port it; the macOS script is now a
-second reference implementation alongside the Windows one.
+- [x] Linux — `linux/setup.sh`, same contract (x86_64)
+- [ ] CI smoke test on `windows-latest` / `ubuntu-latest` (`--verify-only`)
+- [ ] arm64 Linux, if Google ever ships a prebuilt SDK
+  ([flutter#109609](https://github.com/flutter/flutter/issues/109609))
 
 ## If this isn't what you need
 
@@ -314,16 +334,13 @@ second reference implementation alongside the Windows one.
 Contributions are open and genuinely wanted — start with
 **[CONTRIBUTING.md](CONTRIBUTING.md)**.
 
-The **top wanted contribution is `linux/setup.sh`.** It is still a stub, and there are now
-two reference implementations to copy from — `windows/setup.ps1` and `macos/setup.sh`. A
-port should keep the same flag surface (`--verify-only` / `--skip-android` /
-`--install-root` / `--precache`), the same exit codes (`0` / `1` / `2`), be idempotent,
-install to user scope with no `sudo`, verify SHA-256 where the publisher provides
-checksums, log each run, and end with the same Installed / Already installed / MISSING
-summary. Partial work is welcome — a `setup.sh` that only does the JDK step, with the rest
-as clean no-ops, is a useful pull request.
+All three platforms are implemented now, so the most valuable contribution is **telling me
+it worked (or didn't) on your machine** — see below. If you do want to write code, the
+open items are a CI smoke test and anything in the roadmap above; the porting contract in
+[CONTRIBUTING.md](CONTRIBUTING.md) documents the behaviour all three scripts share, so keep
+changes consistent across them.
 
-Other ways to help, no shell scripting required:
+Ways to help, no shell scripting required:
 
 1. **Run it and tell me what happened.** [Open an issue](../../issues/new) with your OS
    version and architecture, the flags you used, and the log from `<install root>/logs/`
